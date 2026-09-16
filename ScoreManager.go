@@ -17,7 +17,19 @@ type PlayerInfo struct {
 
 var db *sql.DB
 
+const apikey = "my-secret-api-key-12345"
+
+func isValidAPIKey(r *http.Request) bool {
+	clientKey := r.Header.Get("X-API-KEY")
+	return clientKey == apikey
+}
+
 func saveScore(w http.ResponseWriter, r *http.Request) {
+
+	if !isValidAPIKey(r) {
+		http.Error(w, "Forrbin: Invalid API Key", http.StatusForbidden)
+		return
+	}
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -50,6 +62,11 @@ func saveScore(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendScore(w http.ResponseWriter, r *http.Request) {
+
+	if !isValidAPIKey(r) {
+		http.Error(w, "Forbidden: Invalid API Key", http.StatusForbidden)
+		return
+	}
 
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
