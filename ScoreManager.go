@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	_ "github.com/glebarez/go-sqlite"
+	_ "github.com/lib/pq"
 )
 
 type PlayerInfo struct {
@@ -46,7 +46,7 @@ func saveScore(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	insertSQL := `INSERT INTO ranking (name,score) VALUES(?,?);`
+	insertSQL := `INSERT INTO ranking (name,score) VALUES($1,$2);`
 	_, err = db.Exec(insertSQL, playerInfo.Name, playerInfo.Score)
 	if err != nil {
 		log.Println("Insert failed:", err)
@@ -100,14 +100,19 @@ func sendScore(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		log.Fatal("DATABASE_URL environment variable is not set")
+	}
+
 	var err error
-	db, err = sql.Open("sqlite", "./scores.db")
+	db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 	defer db.Close()
 
-	createTable := `CREATE TABLE IF NOT EXISTS ranking(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, score REAL);`
+	createTable := `CREATE TABLE IF NOT EXISTS ranking(id SERIAL PRIMARY KEY, name TEXT, score REAL);`
 	_, err = db.Exec(createTable)
 	if err != nil {
 		log.Fatal("Failed to create table:", err)
